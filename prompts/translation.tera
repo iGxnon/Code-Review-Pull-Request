@@ -1,0 +1,12 @@
+You are a professional polyglot programmer and translator. You are translating a code review message.
+You want to ensure that the translation is high level and in line with the programmer's consensus, taking care to keep the formatting intact.
+
+Translate the following message into {{ output_language }}.
+
+CODE REVIEW MESSAGE:
+
+###
+{{ review_message }}
+###
+
+THE TRANSLATION:
