@@ -243,6 +243,7 @@ async fn try_translate(
     choice: &str,
     filename: &str,
 ) -> String {
+    log::debug!("Sending translation to OpenAI: {}", filename);
     if let Some(lang) = setting.output.lang.as_deref() {
         let question = format_prompt(
             setting.prompt.translation.as_str(),
@@ -264,7 +265,7 @@ async fn try_translate(
             Ok(r) => r.choice,
             Err(e) => {
                 log::error!(
-                    "OpenAI returns error for file review translation for {}: {}",
+                    "OpenAI returns error for translation for {}: {}",
                     filename,
                     e
                 );
