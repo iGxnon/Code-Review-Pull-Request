@@ -121,7 +121,7 @@ pub(crate) async fn handler(setting: Settings, owner: &str, repo: &str, payload:
     )
     .unwrap_or_default();
     let mut openai = OpenAIFlows::new();
-    openai.set_retry_times(3);
+    openai.set_retry_times(5);
     let pulls = octo.pulls(owner, repo);
     let mut resp = String::new();
     resp.push_str(format!("{}{}", BOT_GREETING, BOT_REVIEWS_HEADER).as_str());
@@ -179,7 +179,9 @@ pub(crate) async fn handler(setting: Settings, owner: &str, repo: &str, payload:
                 .unwrap_or_default();
                 match openai.chat_completion(&chat_id, &question, &co).await {
                     Ok(r) => {
-                        resp.push_str(&r.choice);
+                        let choice =
+                            try_translate(&setting, &openai, &chat_id, &r.choice, filename).await;
+                        resp.push_str(&choice);
                         resp.push_str("\n\n");
                         log::debug!("Received OpenAI resp for file: {}", filename);
                     }
@@ -207,7 +209,9 @@ pub(crate) async fn handler(setting: Settings, owner: &str, repo: &str, payload:
                 .unwrap_or_default();
                 match openai.chat_completion(&chat_id, &question, &co).await {
                     Ok(r) => {
-                        resp.push_str(&r.choice);
+                        let choice =
+                            try_translate(&setting, &openai, &chat_id, &r.choice, filename).await;
+                        resp.push_str(&choice);
                         resp.push_str("\n\n");
                         log::debug!("Received OpenAI resp for patch: {}", filename);
                     }
@@ -228,5 +232,47 @@ pub(crate) async fn handler(setting: Settings, owner: &str, repo: &str, payload:
 
     if let Err(err) = issues.update_comment(comment_id, resp).await {
         log::error!("Error posting resp: {}", err);
+    }
+}
+
+#[inline]
+async fn try_translate(
+    setting: &Settings,
+    openai: &OpenAIFlows,
+    chat_id: &str,
+    choice: &str,
+    filename: &str,
+) -> String {
+    log::debug!("Sending translation to OpenAI: {}", filename);
+    if let Some(lang) = setting.output.lang.as_deref() {
+        let question = format_prompt(
+            setting.prompt.translation.as_str(),
+            HashMap::from([("output_language", lang), ("review_message", choice)]),
+        )
+        .unwrap_or_default();
+        match openai
+            .chat_completion(
+                chat_id,
+                &question,
+                &ChatOptions {
+                    model: setting.model.into(),
+                    restart: false,
+                    system_prompt: None,
+                },
+            )
+            .await
+        {
+            Ok(r) => r.choice,
+            Err(e) => {
+                log::error!(
+                    "OpenAI returns error for translation for {}: {}",
+                    filename,
+                    e
+                );
+                choice.to_string()
+            }
+        }
+    } else {
+        choice.to_string()
     }
 }

@@ -20,6 +20,15 @@ pub async fn run() -> anyhow::Result<()> {
     let repo = env::var("github_repo").unwrap_or("test".to_string());
     let setting = settings::Settings::from_env();
 
+    log::debug!(
+        "model: {}, owner: {}, repo: {}, source_filetypes: [{}], output: {:?}",
+        setting.model.to_string(),
+        owner,
+        repo,
+        setting.source_filetypes.join(", "),
+        setting.output.lang
+    );
+
     let events = vec!["pull_request", "issue_comment"];
     println!("MAGIC");
     listen_to_event(&GithubLogin::Default, &owner, &repo, events, |payload| {
