@@ -87,7 +87,7 @@ impl Settings {
         let source_filetypes = env::var("source_filetypes")
             .unwrap_or(DEFAULT_SOURCE_FILETYPES.join(","))
             .split(',')
-            .map(|s| s.to_string())
+            .map(|s| s.trim().to_string())
             .collect();
         let language = env::var("language").ok();
         Self {
